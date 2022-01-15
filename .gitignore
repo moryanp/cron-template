@@ -1,0 +1,5 @@
+/vendor
+/historico/*
+/logs/*
+.env
+/lockfile/*
