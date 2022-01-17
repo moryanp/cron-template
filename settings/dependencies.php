@@ -1,8 +1,8 @@
 <?php
 
 use App\Database\DB;
-use App\Repository\ConsultDao;
-use App\Service\ConsultService;
+use App\Repository\Impl\ConsultCnpjDao;
+use App\Service\Impl\ConsultCnpjService;
 use DI\Container;
 use Gelf\Publisher;
 use Gelf\Transport\TcpTransport;
@@ -15,24 +15,26 @@ use Monolog\Processor\UidProcessor;
 
 return function (Container $container) {
 
+    // ================= Connection :
     $container->set(
         'DbConnection',
         function () {
-            DB::getConneciton();
+            return DB::getConneciton();
         }
     );
 
+    // ================= DAOs :
     $container->set(
         'ConsultDao',
         function ($container) {
-            return new ConsultDao($container);
+            return new ConsultCnpjDao($container);
         }
     );
-
+    // ================= Services :
     $container->set(
         'ConsultService',
         function ($container) {
-            return new ConsultService($container);
+            return new ConsultCnpjService($container);
         }
     );
 

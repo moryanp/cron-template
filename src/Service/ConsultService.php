@@ -2,37 +2,32 @@
 
 namespace App\Service;
 
+use App\Repository\ConsultDao;
 use DI\Container;
-use Exception;
+use Monolog\Logger;
 
-class ConsultService
+abstract class ConsultService implements ConsultServiceInterface
 {
     /**
-     * @var ConsultDao
+     * @var ConsultDao classe de persistência de dados
      */
-    private $consultDao;
-    private $logger;
-    private $register;
+    protected ConsultDao $consultDao;
+
+    /**
+     * @var Logger registro de eventos da aplicação
+     */
+    protected $logger;
+
+    /**
+     * @var Logger salva o histórico de resultados
+     */
+    protected $register;
+
 
     public function __construct(Container $container)
     {
         $this->consultDao = $container->get('ConsultDao');
         $this->logger = $container->get('LoggerService');
         $this->register = $container->get('RegisterService');
-    }
-
-    public function update($id, $data)
-    {
-        // aqui vai toda a lógica da regra de negócio para procurar os dados que necessitam atualizar
-        // atualizar os dados
-        try {
-            $this->register->info("Json salvo no registro");
-
-            $this->logger->info("Update realizado com sucesso");
-
-            return $this->consultDao->update($id, $data);
-        } catch (Exception $e) {
-            $e->getMessage();
-        }
     }
 }
