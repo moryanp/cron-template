@@ -2,22 +2,26 @@
 
 namespace App;
 
+use App\Service\ConsultService;
 use DI\Container;
 
 class Cron
 {
-    private $consultService;
+
+    /**
+     * @var ConsultService
+     */
+    private ConsultService $consultService;
 
     public function __construct(Container $container)
     {
         $this->consultService = $container->get('ConsultService');
     }
 
-    public function execute()
+    public function start()
     {
         echo "===== Starting CRON\n";
 
-        echo "- Updated data: \n";
-        print_r($this->consultService->update(24, array('Batata', 'Banana', 'Uva', 'Morango')));
+        $this->consultService->execute();
     }
 }

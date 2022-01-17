@@ -25,13 +25,13 @@ try {
     //     die();
     // }
 
-    $f_file = fopen(CONTROL_PATH . '/' . $file, 'x');
+    // $f_file = fopen(CONTROL_PATH . '/' . $file, 'x');
 
     $cron = new Cron($container);
-    $cron->execute();
+    $cron->start();
 
-    fclose($f_file);
-    unlink(CONTROL_PATH . '/' . $file);
+    // fclose($f_file);
+    // unlink(CONTROL_PATH . '/' . $file);
 } catch (Exception $e) {
     echo $e->getMessage();
 } finally {
