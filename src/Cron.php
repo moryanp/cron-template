@@ -48,11 +48,11 @@ class Cron
 
                 // 2- verifica se o status contido no BD diverge do status contigo na resposta da CAF
                 $status = $data['cocn_status_consulta'];
-                // $statusCaf = $this->translateStatus($cafResult['status']);
-                $statusCaf = $this->translateStatus(1);
+                $statusCaf = $this->translateStatus($cafResult['status']);
+                // $statusCaf = $this->translateStatus("APROVADO");
                 if ($status != $statusCaf) {
                     // envia os dados para serem preparados para a atualização
-                    // $this->consultService->update($data, $cafResult);
+                    $this->consultService->update($data, $cafResult);
                 }
             }
         }
