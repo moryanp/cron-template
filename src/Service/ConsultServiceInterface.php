@@ -6,5 +6,5 @@ interface ConsultServiceInterface
 {
     function execute();
     function getPendings();
-    function update($id, $data);
+    function update(array $bdData, array $cafData);
 }

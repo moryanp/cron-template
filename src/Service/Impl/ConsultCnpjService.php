@@ -3,6 +3,7 @@
 namespace App\Service\Impl;
 
 use App\Model\Entity\CnpjModel;
+use App\Model\Entity\ConsultModel;
 use App\Service\ConsultService;
 use DI\Container;
 
@@ -36,19 +37,18 @@ class ConsultCnpjService extends ConsultService
      * construct an object with the new data to save it in database
      * @return void
      */
-    public function update($bdData, $cafData)
+    public function update(array $bdData, array $cafData)
     {
 
         // constroi um novo objeto do tipo consult que é composto pelos 
         // dados corretos para serem salvos no BD
-        $cnpj = $this->constructUpdatedObject($bdData, $cafData);
+        $data = $this->constructUpdatedObject($bdData, $cafData);
 
         try {
-            $this->register->info("Json salvo no registro");
+            // $this->register->info("Json salvo no registro");
 
-            $this->logger->info("Update realizado com sucesso");
-
-            // return $this->consultDao->update($id, $data);
+            // $this->logger->info("Update realizado com sucesso");
+            $this->consultDao->update($data);
         } catch (\Exception $e) {
             $e->getMessage();
         }
@@ -86,6 +86,9 @@ class ConsultCnpjService extends ConsultService
         $numero = isset($cafData['sections']['pjData']['data']['address']['number']) ? $cafData['sections']['pjData']['data']['address']['number'] : NULL;
         $complemento = isset($cafData['sections']['pjData']['data']['address']['complement']) ? $cafData['sections']['pjData']['data']['address']['complement'] : NULL;
         $cep = isset($cafData['sections']['pjData']['data']['address']['zipCode']) ? $cafData['sections']['pjData']['data']['address']['zipCode'] : NULL;
+
+        // correção formato dd/mm/yyyy para yyyy-mm-dd:
+        $dataAbertura = date("Y-m-d", strtotime(str_replace('/', '-', $dataAbertura)));
 
         // novo objeto com dados atualizados
         $cnpjModel = new CnpjModel($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao, $cnpj, $cnpjIndex, $razaoSocial, $email, $dataAbertura, $nomeFantasia, $telefone, $cnae, $naturezaJuridica, $porte, $estado, $cidade, $bairro, $logradouro, $numero, $complemento, $cep);
