@@ -5,7 +5,7 @@ namespace App\Repository\Impl;
 use App\Repository\ConsultDao;
 use DI\Container;
 
-class ConsultCnpjDao extends ConsultDao
+final class ConsultCnpjDao extends ConsultDao
 {
 
     public function __construct(Container $container)
@@ -13,6 +13,10 @@ class ConsultCnpjDao extends ConsultDao
         parent::__construct($container);
     }
 
+    /**
+     * returns an array contents all the pendings results from db
+     * @return array
+     */
     public function findAllPendings()
     {
         $query = "
@@ -29,6 +33,10 @@ class ConsultCnpjDao extends ConsultDao
         return $results;
     }
 
+    /**
+     * return from db an element inside an array
+     * @return array
+     */
     public function findById($id)
     {
         $query = "
@@ -48,6 +56,10 @@ class ConsultCnpjDao extends ConsultDao
         return $statement->fetch(\PDO::FETCH_ASSOC);
     }
 
+    /**
+     * updates the corresponding id data
+     * @return void
+     */
     public function update($id, $data)
     {
     }
