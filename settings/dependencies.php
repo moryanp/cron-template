@@ -2,6 +2,7 @@
 
 use App\Database\DB;
 use App\Repository\Impl\ConsultCnpjDao;
+use App\Service\CafService;
 use App\Service\Impl\ConsultCnpjService;
 use DI\Container;
 use Gelf\Publisher;
@@ -35,6 +36,13 @@ return function (Container $container) {
         'ConsultService',
         function ($container) {
             return new ConsultCnpjService($container);
+        }
+    );
+
+    $container->set(
+        'CafService',
+        function () {
+            return new CafService();
         }
     );
 

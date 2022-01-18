@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Service\CafService;
 use App\Service\ConsultService;
 use DI\Container;
 
@@ -13,9 +14,15 @@ class Cron
      */
     private ConsultService $consultService;
 
+    /**
+     * @var CafService
+     */
+    private CafService $cafService;
+
     public function __construct(Container $container)
     {
         $this->consultService = $container->get('ConsultService');
+        $this->cafService = $container->get('CafService');
     }
 
     /**
@@ -35,6 +42,8 @@ class Cron
             foreach ($listPendings as $data) {
 
                 // 1 - através do execution_id, buscar na CAF a consulta
+                $execution_id = $data['cocn_execution_id'];
+                $cafResult = $this->cafService->getByExecutionId($execution_id);
 
                 // 2- se status desse dado na caf estiver diferente do dado armazenado no 
                 // bd, atualizar ele com as novas informaçoes da CAF
