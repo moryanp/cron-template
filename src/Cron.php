@@ -18,10 +18,27 @@ class Cron
         $this->consultService = $container->get('ConsultService');
     }
 
+    /**
+     * starts the process of veryfying all data where status still unprocessed and 
+     * updates its information with the dada obtained from CAF API
+     * @return void
+     */
     public function start()
     {
-        echo "===== Starting CRON\n";
+        // pesquisa dados que ainda estão processando
+        $listPendings = $this->consultService->getPendings();
 
-        $this->consultService->execute();
+        // caso haja algum dado para atualizar
+        if (!empty($listPendings)) {
+
+            // para cada elemento do array, pesquisar seu status atual na CAF
+            foreach ($listPendings as $data) {
+
+                // 1 - através do execution_id, buscar na CAF a consulta
+
+                // 2- se status desse dado na caf estiver diferente do dado armazenado no 
+                // bd, atualizar ele com as novas informaçoes da CAF
+            }
+        }
     }
 }
