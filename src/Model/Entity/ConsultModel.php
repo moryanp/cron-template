@@ -2,7 +2,7 @@
 
 namespace App\Model\Entity;
 
-abstract class Consult
+abstract class ConsultModel
 {
 
     /**
@@ -16,12 +16,6 @@ abstract class Consult
      * status da consulta (0 - processando, 1 - pendente, 2 - pendente ocr, 3 - reprovado e 4 - aprovado)
      */
     protected $statusConsulta;
-
-    /**
-     * @var int|NULL
-     * status do documento (0- aprovado e 1- reprovado)
-     */
-    protected $statusDocumento;
 
     /**
      * @var int|NULL
@@ -42,11 +36,10 @@ abstract class Consult
     protected $dataAtualizacao;
 
 
-    public function __construct($id, $statusConsulta, $statusDocumento, $indicadorFraude, $executionId, $dataAtualizacao)
+    public function __construct($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao)
     {
         $this->id = $id;
         $this->statusConsulta = $statusConsulta;
-        $this->statusDocumento = $statusDocumento;
         $this->indicadorFraude = $indicadorFraude;
         $this->executionId = $executionId;
         $this->dataAtualizacao = $dataAtualizacao;

@@ -2,7 +2,7 @@
 
 namespace App\Model\Entity;
 
-final class Cnpj extends Consult
+final class CnpjModel extends ConsultModel
 {
 
     /**
@@ -108,10 +108,11 @@ final class Cnpj extends Consult
     private $cep;
 
 
-    public function __construct($id, $statusConsulta, $statusDocumento, $indicadorFraude, $executionId, $dataAtualizacao, $cnpj, $razaoSocial, $email, $dataAbertura, $nomeFantasia, $telefone, $cnae, $naturezaJuridica, $porte, $estado, $cidade, $bairro, $logradouro, $numero, $complemento, $cep)
+    public function __construct($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao, $cnpj, $cnpjIndex, $razaoSocial, $email, $dataAbertura, $nomeFantasia, $telefone, $cnae, $naturezaJuridica, $porte, $estado, $cidade, $bairro, $logradouro, $numero, $complemento, $cep)
     {
-        parent::__construct($id, $statusConsulta, $statusDocumento, $indicadorFraude, $executionId, $dataAtualizacao);
+        parent::__construct($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao);
         $this->cnpj = $cnpj;
+        $this->cnpjIndex = $cnpjIndex;
         $this->razaoSocial = $razaoSocial;
         $this->email = $email;
         $this->dataAbertura = $dataAbertura;
