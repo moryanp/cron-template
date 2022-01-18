@@ -40,19 +40,23 @@ class Cron
         if (!empty($listPendings)) {
 
             // para cada elemento do array, pesquisar seu status atual na CAF
-            foreach ($listPendings as $data) {
+            foreach ($listPendings as $bdData) {
 
                 // 1 - através do execution_id do atual dado, consultar na CAF a resposta
-                $execution_id = $data['cocn_execution_id'];
-                $cafResult = $this->cafService->getByExecutionId($execution_id);
+                $execution_id = $bdData['cocn_execution_id'];
+                $cafData = $this->cafService->getByExecutionId($execution_id);
 
                 // 2- verifica se o status contido no BD diverge do status contigo na resposta da CAF
-                $status = $data['cocn_status_consulta'];
-                $statusCaf = $this->translateStatus($cafResult['status']);
-                // $statusCaf = $this->translateStatus("APROVADO");
+                $status = $bdData['cocn_status_consulta'];
+                $statusCaf = $this->translateStatus($cafData['status']);
+
                 if ($status != $statusCaf) {
+
+                    // Transforma o status string em valor int para salvar no BD
+                    $cafData['status'] = $statusCaf;
+
                     // envia os dados para serem preparados para a atualização
-                    $this->consultService->update($data, $cafResult);
+                    $this->consultService->update($bdData, $cafData);
                 }
             }
         }
