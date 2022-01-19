@@ -26,7 +26,7 @@ final class ConsultCnpjDao extends ConsultDao
                 FROM
                     `tbCnpj`
                 WHERE 
-                    ((`cocn_status_consulta` = 0) OR (`cocn_status_consulta` = 1) OR (`cocn_status_consulta` = 2)) AND (`cocn_deleted` <> 1)
+                    ((`cocn_status_consulta` = 0) OR (`cocn_status_consulta` = 1) OR (`cocn_status_consulta` = 2)) AND (`cocn_deleted` <> 1) AND (`cocn_data_atualizacao` = current_date())
                 ";
 
         $results = $this->conn->query($query)->fetchAll(\PDO::FETCH_ASSOC);
