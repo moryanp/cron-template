@@ -20,18 +20,20 @@ $dependencies($container);
 try {
     $file = "cron-caf-cnpj.txt";
 
-    // if (file_exists(CONTROL_PATH . '/' . $file)) {
-    //     print_r("Arquivo de controle '{$file}' bloqueando");
-    //     die();
-    // }
+    if (file_exists(CONTROL_PATH . '/' . $file)) {
+        print_r("Arquivo de controle '{$file}' bloqueando");
+        die();
+    }
 
-    // $f_file = fopen(CONTROL_PATH . '/' . $file, 'x');
+    $f_file = fopen(CONTROL_PATH . '/' . $file, 'x');
+
 
     $cron = new Cron($container);
     $cron->start();
 
-    // fclose($f_file);
-    // unlink(CONTROL_PATH . '/' . $file);
+
+    fclose($f_file);
+    unlink(CONTROL_PATH . '/' . $file);
 } catch (Exception $e) {
     echo $e->getMessage();
 } finally {

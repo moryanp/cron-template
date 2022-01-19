@@ -9,6 +9,11 @@ use Monolog\Logger;
 abstract class ConsultService implements ConsultServiceInterface
 {
     /**
+     * @var CafService
+     */
+    protected CafService $cafService;
+
+    /**
      * @var ConsultDao classe de persistência de dados
      */
     protected ConsultDao $consultDao;
@@ -24,8 +29,11 @@ abstract class ConsultService implements ConsultServiceInterface
     protected $register;
 
 
+
+
     public function __construct(Container $container)
     {
+        $this->cafService = $container->get('CafService');
         $this->consultDao = $container->get('ConsultDao');
         $this->logger = $container->get('LoggerService');
         $this->register = $container->get('RegisterService');

@@ -49,6 +49,9 @@ return function (Container $container) {
     $container->set(
         'LoggerService',
         function () {
+            $day = date('d');
+            $month = date('m');
+            $year = date('Y');
 
             if ($_ENV['IS_DEVMODE'] == "1") {
                 $logger = new Logger($_ENV['LOGGER_NAME']);
@@ -57,7 +60,7 @@ return function (Container $container) {
                 $logger->pushProcessor($processor);
 
                 $handler = new StreamHandler(
-                    LOGS_PATH . '/app.log',
+                    LOGS_PATH . "/{$year}/{$month}/{$day}/app.log",
                     Logger::DEBUG
                 );
                 $logger->pushHandler($handler);

@@ -3,9 +3,9 @@
 namespace App\Service\Impl;
 
 use App\Model\Entity\CnpjModel;
-use App\Model\Entity\ConsultModel;
 use App\Service\ConsultService;
 use DI\Container;
+use InvalidArgumentException;
 
 class ConsultCnpjService extends ConsultService
 {
@@ -15,12 +15,49 @@ class ConsultCnpjService extends ConsultService
         parent::__construct($container);
     }
 
-    public function execute()
+
+    /**
+     * starts the update process if exists any pending data
+     * the update process only get current day data
+     * @return null
+     */
+    public function startUpdatePendingQueries()
     {
-        // $results = $this->consultDao->findAllPendings();
-        // $results = $this->consultDao->findById(17);
-        // print_r($results);
+        try {
+            // pesquisa dados que ainda estão processando
+            $listPendings = $this->getPendings();
+
+            // caso haja algum dado para atualizar
+            if (!empty($listPendings)) {
+
+                // para cada elemento do array, pesquisar seu status atual na CAF
+                foreach ($listPendings as $bdData) {
+
+                    // 1 - através do execution_id do atual dado, consultar na CAF a resposta
+                    $execution_id = $bdData['cocn_execution_id'];
+                    $cafData = $this->cafService->getByExecutionId($execution_id);
+
+                    // 2- verifica se o status contido no BD diverge do status contigo na resposta da CAF
+                    $status = $bdData['cocn_status_consulta'];
+                    $statusCaf = $this->translateStatus($cafData['status']);
+
+                    if ($status != $statusCaf) {
+
+                        // Transforma o status string em valor int para salvar no BD
+                        $cafData['status'] = $statusCaf;
+
+                        // envia os dados para serem preparados para a atualização
+                        $this->update($bdData, $cafData);
+                    }
+                }
+                // escreve no arquivo de log o término da operação com sucesso
+                $this->logger->info("CRON-CNPJ-CAF: finished data updates");
+            }
+        } catch (\Exception $e) {
+            $this->logger->critical("CRON-CNPJ-CAF: cannot update data with id={$bdData['cocn_id']}. Error: {$e->getMessage()}");
+        }
     }
+
 
     /**
      * return all data where status still unprocessed
@@ -33,26 +70,29 @@ class ConsultCnpjService extends ConsultService
         return $pendings;
     }
 
+
     /**
      * construct an object with the new data to save it in database
      * @return void
      */
     public function update(array $bdData, array $cafData)
     {
-
-        // constroi um novo objeto do tipo consult que é composto pelos 
-        // dados corretos para serem salvos no BD
-        $data = $this->constructUpdatedObject($bdData, $cafData);
-
         try {
-            // $this->register->info("Json salvo no registro");
+            // constroi um novo objeto do tipo consult que é composto pelos 
+            // dados corretos para serem salvos no bd
+            $data = $this->constructUpdatedObject($bdData, $cafData);
 
-            // $this->logger->info("Update realizado com sucesso");
+            // envia os dados atualizado para serem salvos no bd
             $this->consultDao->update($data);
+
+
+            // salva o registro em arquivo texto como registro
+            $this->register->info("Data ID=" . $data->getId() . " updated with success", $cafData);
         } catch (\Exception $e) {
-            $e->getMessage();
+            throw new \Exception($e->getMessage());
         }
     }
+
 
     /**
      * create an object with all updated data to be saved
@@ -94,5 +134,45 @@ class ConsultCnpjService extends ConsultService
         $cnpjModel = new CnpjModel($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao, $cnpj, $cnpjIndex, $razaoSocial, $email, $dataAbertura, $nomeFantasia, $telefone, $cnae, $naturezaJuridica, $porte, $estado, $cidade, $bairro, $logradouro, $numero, $complemento, $cep);
 
         return $cnpjModel;
+    }
+
+    /**
+     * translates the string status to a int according to its value
+     * @return int
+     */
+    public function translateStatus($status)
+    {
+        if (is_string($status)) {
+
+            $status = strtoupper($status);
+
+            switch ($status) {
+                case 'APROVADO':
+                    $status = 4;
+                    return $status;
+
+                case 'REPROVADO':
+                    $status = 3;
+                    return $status;
+
+                case 'PENDENTE OCR':
+                    $status = 2;
+                    return $status;
+
+                case 'PENDENTE':
+                    $status = 1;
+                    return $status;
+
+                case 'PROCESSANDO':
+                    $status = 0;
+                    return $status;
+
+                default:
+                    throw new InvalidArgumentException("TranslateStatus Error: cannot get properly status from CAF response");
+                    break;
+            }
+        } else {
+            throw new InvalidArgumentException("TranslateStatus Error: status must be a string");
+        }
     }
 }
