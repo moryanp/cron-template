@@ -2,12 +2,12 @@
 
 namespace App\Repository;
 
-use App\Model\Entity\CnpjModel;
+use App\Model\Entity\CpfModel;
 
 interface ConsultDaoInterface
 {
 
     public function findAllPendings();
     public function findById($id);
-    public function update(CnpjModel $data);
+    public function update(CpfModel $data);
 }

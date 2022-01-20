@@ -2,12 +2,12 @@
 
 namespace App\Service\Impl;
 
-use App\Model\Entity\CnpjModel;
+use App\Model\Entity\CpfModel;
 use App\Service\ConsultService;
 use DI\Container;
 use InvalidArgumentException;
 
-class ConsultCnpjService extends ConsultService
+class ConsultCpfService extends ConsultService
 {
 
     public function __construct(Container $container)
@@ -34,11 +34,11 @@ class ConsultCnpjService extends ConsultService
                 foreach ($listPendings as $bdData) {
 
                     // 1 - através do execution_id do atual dado, consultar na CAF a resposta
-                    $execution_id = $bdData['cocn_execution_id'];
+                    $execution_id = $bdData['cocp_execution_id'];
                     $cafData = $this->cafService->getByExecutionId($execution_id);
 
                     // 2- verifica se o status contido no BD diverge do status contigo na resposta da CAF
-                    $status = $bdData['cocn_status_consulta'];
+                    $status = $bdData['cocp_status_consulta'];
                     $statusCaf = $this->translateStatus($cafData['status']);
 
                     if ($status != $statusCaf) {
@@ -51,10 +51,10 @@ class ConsultCnpjService extends ConsultService
                     }
                 }
                 // escreve no arquivo de log o término da operação com sucesso
-                $this->logger->info("CRON-CNPJ-CAF: finished data updates");
+                $this->logger->info("CRON-CPF-CAF: finished data updates");
             }
         } catch (\Exception $e) {
-            $this->logger->critical("CRON-CNPJ-CAF: cannot update data with id={$bdData['cocn_id']}. Error: {$e->getMessage()}");
+            $this->logger->critical("CRON-CPF-CAF: cannot update data with id={$bdData['idCpfVerificado']}. Error: {$e->getMessage()}");
         }
     }
 
@@ -85,7 +85,6 @@ class ConsultCnpjService extends ConsultService
             // envia os dados atualizado para serem salvos no bd
             $this->consultDao->update($data);
 
-
             // salva o registro em arquivo texto como registro
             $this->register->info("Data ID=" . $data->getId() . " updated with success", $cafData);
         } catch (\Exception $e) {
@@ -96,44 +95,35 @@ class ConsultCnpjService extends ConsultService
 
     /**
      * create an object with all updated data to be saved
-     * @return CnpjModel
+     * @return CpfModel
      */
     public function constructUpdatedObject($bdData, $cafData)
     {
-
         // dados imutaveis: 
-        $id = $bdData['cocn_id'];
-        $cnpj = $bdData['cocn_cnpj'];
-        $cnpjIndex = $bdData['cocn_cnpj_index'];
+        $id = $bdData['idCpfVerificado'];
+        $cpf = $bdData['cpf'];
+        $cpfIndex = $bdData['cpf_indice'];
 
         // dados atualizaveis:
         $statusConsulta = isset($cafData['status']) ? $cafData['status'] : NULL;
         $indicadorFraude = isset($cafData['fraud']) ? (($cafData['fraud']) == true ? 1 : 0) : NULL;
         $executionId = isset($cafData['_id']) ? $cafData['_id'] : NULL;
         $dataAtualizacao = date('Y-m-d');
-        $razaoSocial = isset($cafData['sections']['pjData']['data']['officialName']) ? $cafData['sections']['pjData']['data']['officialName'] : NULL;
-        $email = isset($cafData['sections']['pjData']['data']['companyEmail']) ? $cafData['sections']['pjData']['data']['companyEmail'] : NULL;
-        $dataAbertura = isset($cafData['sections']['pjData']['data']['openingDate']) ? $cafData['sections']['pjData']['data']['openingDate'] : NULL;
-        $nomeFantasia = isset($cafData['sections']['pjData']['data']['fantasyName']) ? $cafData['sections']['pjData']['data']['fantasyName'] : NULL;
-        $telefone = isset($cafData['sections']['pjData']['data']['phoneNumber']) ? $cafData['sections']['pjData']['data']['phoneNumber'] : NULL;
-        $cnae = isset($cafData['sections']['pjData']['data']['mainActivity']) ? $cafData['sections']['pjData']['data']['mainActivity'] : NULL;
-        $naturezaJuridica = isset($cafData['sections']['pjData']['data']['legalNature']) ? $cafData['sections']['pjData']['data']['legalNature'] : NULL;
-        $porte = isset($cafData['sections']['pjData']['data']['companySize']) ? $cafData['sections']['pjData']['data']['companySize'] : NULL;
-        $estado = isset($cafData['sections']['pjData']['data']['address']['state']) ? $cafData['sections']['pjData']['data']['address']['state'] : NULL;
-        $cidade = isset($cafData['sections']['pjData']['data']['address']['city']) ? $cafData['sections']['pjData']['data']['address']['city'] : NULL;
-        $bairro = isset($cafData['sections']['pjData']['data']['address']['neighborhood']) ? $cafData['sections']['pjData']['data']['address']['neighborhood'] : NULL;
-        $logradouro = isset($cafData['sections']['pjData']['data']['address']['street']) ? $cafData['sections']['pjData']['data']['address']['street'] : NULL;
-        $numero = isset($cafData['sections']['pjData']['data']['address']['number']) ? $cafData['sections']['pjData']['data']['address']['number'] : NULL;
-        $complemento = isset($cafData['sections']['pjData']['data']['address']['complement']) ? $cafData['sections']['pjData']['data']['address']['complement'] : NULL;
-        $cep = isset($cafData['sections']['pjData']['data']['address']['zipCode']) ? $cafData['sections']['pjData']['data']['address']['zipCode'] : NULL;
+        $nome = isset($cafData['sections']['cpf']['name']) ? $cafData['sections']['cpf']['name'] : $bdData['nome'];
+        $dataNascimento = isset($cafData['sections']['cpf']['birthDate']) ? $cafData['sections']['cpf']['birthDate'] : $bdData;
+        $anoObito = isset($cafData['sections']['cpf']['deathYear']) ? (($cafData['sections']['cpf']['deathYear'] == "") ? NULL : $cafData['sections']['cpf']['deathYear']) : NULL;
+        $indicadorObito = ($anoObito == '') ? 0 : 1;
 
         // correção formato dd/mm/yyyy para yyyy-mm-dd:
-        $dataAbertura = date("Y-m-d", strtotime(str_replace('/', '-', $dataAbertura)));
+        $dataNascimento = date("Y-m-d", strtotime(str_replace('/', '-', $dataNascimento)));
+        if ($anoObito != NULL) {
+            $anoObito = date("Y-m-d", strtotime(str_replace('/', '-', $anoObito)));
+        }
 
         // novo objeto com dados atualizados
-        $cnpjModel = new CnpjModel($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao, $cnpj, $cnpjIndex, $razaoSocial, $email, $dataAbertura, $nomeFantasia, $telefone, $cnae, $naturezaJuridica, $porte, $estado, $cidade, $bairro, $logradouro, $numero, $complemento, $cep);
+        $cpfModel = new CpfModel($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao, $nome, $cpf, $cpfIndex, $dataNascimento, $anoObito, $indicadorObito);
 
-        return $cnpjModel;
+        return $cpfModel;
     }
 
     /**

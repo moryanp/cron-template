@@ -24,7 +24,7 @@ class CafService
     {
         $this->apiUrlBase = ($_ENV['IS_DEVMODE'] == "0") ? $_ENV['URL_BASE'] : $_ENV['DEV_URL_BASE'];
         $this->apiKey = ($_ENV['IS_DEVMODE'] == "0") ? $_ENV['ACCESS_KEY'] : $_ENV['DEV_ACCESS_KEY'];
-        $this->apiReports = ($_ENV['IS_DEVMODE'] == "0") ? $_ENV['REPORT_ID_CNPJ'] : $_ENV['DEV_REPORT_ID_CNPJ'];
+        $this->apiReports = ($_ENV['IS_DEVMODE'] == "0") ? $_ENV['REPORT_ID_CPF_BASIC'] : $_ENV['DEV_REPORT_ID_CPF_BASIC'];
     }
 
     /**

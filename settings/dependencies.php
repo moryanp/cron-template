@@ -1,9 +1,9 @@
 <?php
 
 use App\Database\DB;
-use App\Repository\Impl\ConsultCnpjDao;
+use App\Repository\Impl\ConsultCpfDao;
 use App\Service\CafService;
-use App\Service\Impl\ConsultCnpjService;
+use App\Service\Impl\ConsultCpfService;
 use DI\Container;
 use Gelf\Publisher;
 use Gelf\Transport\TcpTransport;
@@ -28,14 +28,14 @@ return function (Container $container) {
     $container->set(
         'ConsultDao',
         function ($container) {
-            return new ConsultCnpjDao($container);
+            return new ConsultCpfDao($container);
         }
     );
     // ================= Services :
     $container->set(
         'ConsultService',
         function ($container) {
-            return new ConsultCnpjService($container);
+            return new ConsultCpfService($container);
         }
     );
 
