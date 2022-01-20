@@ -8,8 +8,6 @@ use App\Service\ConsultService;
 use DI\Container;
 use InvalidArgumentException;
 
-use function DI\add;
-
 class ConsultCpfService extends ConsultService
 {
 
@@ -42,6 +40,7 @@ class ConsultCpfService extends ConsultService
                     // verifica se o status contido no BD diverge do status contigo na resposta da CAF
                     $status = $bdData['cocp_status_consulta'];
                     $statusCaf = $this->translateStatus($cafData['status']);
+
                     if ($status != $statusCaf) {
 
                         // Transforma o status string em valor int para salvar no bd
@@ -50,10 +49,13 @@ class ConsultCpfService extends ConsultService
                         // verifica o status e em caso de erro (status=3) salva os 
                         // motivos de reprovacao, senão salva os dados atualizados
                         if ($statusCaf == 3) {
+
                             // se status e cancelado, então envia os dados da resposta
                             // para serem salvos na tabela de motivos de reprovacao
-                            $this->insertError($cafData);
+                            // e atualiza a consulta no bd
+                            $this->insertError($bdData, $cafData);
                         } else {
+
                             // se status for diferente de reprovado, entao envia os
                             // dados para serem preparados para a atualização
                             $this->updateData($bdData, $cafData);
@@ -65,6 +67,7 @@ class ConsultCpfService extends ConsultService
             }
         } catch (\Exception $e) {
             $this->logger->critical("CRON-CPF-CAF: cannot update data with id={$bdData['idCpfVerificado']}. Error: {$e->getMessage()}");
+            throw new \Exception($e->getMessage());
         }
     }
 
@@ -73,7 +76,7 @@ class ConsultCpfService extends ConsultService
      * return all data where status still unprocessed
      * @return array
      */
-    private function getPendings()
+    public function getPendings()
     {
         $pendings = $this->consultDao->findAllPendings();
 
@@ -85,7 +88,7 @@ class ConsultCpfService extends ConsultService
      * construct an object with the new data and send it to be saved in database
      * @return void
      */
-    private function updateData(array $bdData, array $cafData)
+    public function updateData(array $bdData, array $cafData)
     {
         try {
             // constroi um novo objeto do tipo consult que é composto pelos 
@@ -107,18 +110,21 @@ class ConsultCpfService extends ConsultService
      * to be saved in error table in db
      * @return void
      */
-    private function insertError(array $cafData)
+    public function insertError(array $bdData, array $cafData)
     {
         try {
             // constroi um novo objeto do tipo error que e composto pelos dados
             // de motivo de reprovacao e identificacao da requisicao
             $error = $this->constructErrorModel($cafData);
 
+            // constoi o objeto de cpf para ser atualizado
+            $cpf = $this->constructCpfModel($bdData, $cafData);
+
             // envia os dados para serem inseridos no bd
-            $this->consultDao->insert($error);
+            $this->consultDao->insert($cpf, $error);
 
             // salva registro em arquivo sobre consulta com resultado final reprovado
-
+            $this->register->info("Data ID=" . $cpf->getId() . " is reproved", $cafData);
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage());
         }
@@ -130,29 +136,36 @@ class ConsultCpfService extends ConsultService
      */
     private function constructCpfModel($bdData, $cafData)
     {
-        // dados imutaveis: 
-        $id = $bdData['idCpfVerificado'];
-        $cpf = $bdData['cpf'];
-        $cpfIndex = $bdData['cpf_indice'];
+        try {
+            // dados imutaveis: 
+            $id = $bdData['idCpfVerificado'];
+            $cpf = $bdData['cpf'];
+            $cpfIndex = $bdData['cpf_indice'];
+            $statusConsulta = $cafData['status'];
 
-        // dados atualizaveis:
-        $statusConsulta = isset($cafData['status']) ? $cafData['status'] : NULL;
-        $indicadorFraude = isset($cafData['fraud']) ? (($cafData['fraud']) == true ? 1 : 0) : NULL;
-        $executionId = isset($cafData['_id']) ? $cafData['_id'] : NULL;
-        $dataAtualizacao = date('Y-m-d');
-        $nome = isset($cafData['sections']['cpf']['name']) ? $cafData['sections']['cpf']['name'] : $bdData['nome'];
-        $dataNascimento = isset($cafData['sections']['cpf']['birthDate']) ? $cafData['sections']['cpf']['birthDate'] : $bdData;
-        $anoObito = isset($cafData['sections']['cpf']['deathYear']) ? (($cafData['sections']['cpf']['deathYear'] == "") ? NULL : $cafData['sections']['cpf']['deathYear']) : NULL;
-        $indicadorObito = ($anoObito == '') ? 0 : 1;
+            // dados atualizaveis:
+            $executionId = isset($cafData['_id']) ? $cafData['_id'] : $bdData['cocp_execution_id'];
+            $dataAtualizacao = date('Y-m-d');
 
-        // correção formato dd/mm/yyyy para yyyy-mm-dd:
-        $dataNascimento = date("Y-m-d", strtotime(str_replace('/', '-', $dataNascimento)));
-        if ($anoObito != NULL) {
-            $anoObito = date("Y-m-d", strtotime(str_replace('/', '-', $anoObito)));
+            $indicadorFraude = isset($cafData['fraud']) ? (($cafData['fraud']) == true ? 1 : 0) : NULL;
+            $nome = isset($cafData['sections']['cpf']['name']) ? $cafData['sections']['cpf']['name'] : $bdData['nome'];
+            $dataNascimento = isset($cafData['sections']['cpf']['birthDate']) ? $cafData['sections']['cpf']['birthDate'] : $bdData['data_nascimento'];
+            $anoObito = isset($cafData['sections']['cpf']['deathYear']) ? (($cafData['sections']['cpf']['deathYear'] == "") ? NULL : $cafData['sections']['cpf']['deathYear']) : NULL;
+            $indicadorObito = isset($cafData['sections']['cpf']['deathYear']) ? (($anoObito == '') ? 0 : 1) : NULL;
+
+            // correção formato dd/mm/yyyy para yyyy-mm-dd:
+            if ($dataNascimento != NULL) {
+                $dataNascimento = date("Y-m-d", strtotime(str_replace('/', '-', $dataNascimento)));
+            }
+            if ($anoObito != NULL) {
+                $anoObito = date("Y-m-d", strtotime(str_replace('/', '-', $anoObito)));
+            }
+
+            // novo objeto com dados atualizados
+            return new CpfModel($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao, $nome, $cpf, $cpfIndex, $dataNascimento, $anoObito, $indicadorObito);
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
         }
-
-        // novo objeto com dados atualizados
-        return new CpfModel($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao, $nome, $cpf, $cpfIndex, $dataNascimento, $anoObito, $indicadorObito);
     }
 
     /**
@@ -161,20 +174,27 @@ class ConsultCpfService extends ConsultService
      */
     private function constructErrorModel($cafData)
     {
-        $executionId = $cafData['_id'];
-        $reportId = $cafData['report'];
-        $deleted = 0;
-        $list = array();
+        try {
+            $executionId = $cafData['_id'];
+            $reportId = $cafData['report'];
+            $deleted = 0;
+            $list = array();
 
-        // lista de motivos para status reprovado
-        foreach ($cafData['validations'] as $validation) {
-            if (strcmp($validation['status'], "INVALID") == 0) {
-                array_push($list, $validation['description']);
+            // lista de motivos para status reprovado
+            foreach ($cafData['validations'] as $validation) {
+                if (strcmp($validation['status'], "INVALID") == 0) {
+                    array_push($list, $validation['description']);
+                }
             }
-        }
+            if (empty($list)) {
+                array_push($list, "Erro não informado. Verifique a resposta da CAF!");
+            }
 
-        // objeto error contendo as informações
-        return new ErrorModel(null, $executionId, $reportId, $list, $deleted);
+            // objeto error contendo as informações
+            return new ErrorModel(null, $executionId, $reportId, $list, $deleted);
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
     }
 
     /**

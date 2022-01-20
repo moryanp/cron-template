@@ -11,5 +11,5 @@ interface ConsultDaoInterface
     public function findAllPendings();
     public function findById($id);
     public function update(CpfModel $data);
-    public function insert(ErrorModel $data);
+    public function insert(CpfModel $data, ErrorModel $error);
 }

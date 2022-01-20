@@ -94,7 +94,7 @@ final class ConsultCpfDao extends ConsultDao
         ]);
     }
 
-    public function insert(ErrorModel $data)
+    public function insert(CpfModel $data, ErrorModel $error)
     {
         $query = "
                 INSERT INTO
@@ -105,13 +105,15 @@ final class ConsultCpfDao extends ConsultDao
         try {
             $this->conn->beginTransaction();
 
-            foreach ($data->getErrorList() as $error) {
+            $this->update($data);
+
+            foreach ($error->getErrorList() as $item) {
                 $statement = $this->conn->prepare($query);
                 $statement->execute([
-                    'caer_execution_id' => $data->getExecutionId(),
-                    'caer_report_id' => $data->getReportId(),
-                    'caer_error_message' => $error,
-                    'caer_deleted' => $data->getDeleted()
+                    'caer_execution_id' => $error->getExecutionId(),
+                    'caer_report_id' => $error->getReportId(),
+                    'caer_error_message' => $item,
+                    'caer_deleted' => $error->getDeleted()
                 ]);
             }
             $this->conn->commit();

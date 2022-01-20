@@ -37,7 +37,7 @@ class DB
         }
     }
 
-    public static function cloneConnection()
+    public static function closeConnection()
     {
         self::$pdo = null;
     }

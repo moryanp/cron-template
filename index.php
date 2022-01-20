@@ -37,5 +37,5 @@ try {
 } catch (Exception $e) {
     echo $e->getMessage();
 } finally {
-    DB::cloneConnection();
+    DB::closeConnection();
 }
