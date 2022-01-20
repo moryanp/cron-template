@@ -18,7 +18,7 @@ $dependencies = require SETTINGS_PATH . '/dependencies.php';
 $dependencies($container);
 
 try {
-    $file = "cron-caf-cnpj.txt";
+    $file = "cron-caf-cpf.txt";
 
     if (file_exists(CONTROL_PATH . '/' . $file)) {
         print_r("Arquivo de controle '{$file}' bloqueando");
