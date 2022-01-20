@@ -73,7 +73,7 @@ class ConsultCpfService extends ConsultService
      * return all data where status still unprocessed
      * @return array
      */
-    public function getPendings()
+    private function getPendings()
     {
         $pendings = $this->consultDao->findAllPendings();
 
@@ -82,10 +82,10 @@ class ConsultCpfService extends ConsultService
 
 
     /**
-     * construct an object with the new data to save it in database
+     * construct an object with the new data and send it to be saved in database
      * @return void
      */
-    public function updateData(array $bdData, array $cafData)
+    private function updateData(array $bdData, array $cafData)
     {
         try {
             // constroi um novo objeto do tipo consult que é composto pelos 
@@ -102,7 +102,12 @@ class ConsultCpfService extends ConsultService
         }
     }
 
-    public function insertError(array $cafData)
+    /**
+     * construct an object with the list of errors and send it 
+     * to be saved in error table in db
+     * @return void
+     */
+    private function insertError(array $cafData)
     {
         try {
             // constroi um novo objeto do tipo error que e composto pelos dados
