@@ -3,9 +3,12 @@
 namespace App\Service\Impl;
 
 use App\Model\Entity\CpfModel;
+use App\Model\Entity\ErrorModel;
 use App\Service\ConsultService;
 use DI\Container;
 use InvalidArgumentException;
+
+use function DI\add;
 
 class ConsultCpfService extends ConsultService
 {
@@ -33,25 +36,32 @@ class ConsultCpfService extends ConsultService
                 // para cada elemento do array, pesquisar seu status atual na CAF
                 foreach ($listPendings as $bdData) {
 
-                    // 1 - através do execution_id do atual dado, consultar na CAF a resposta
-                    $execution_id = $bdData['cocp_execution_id'];
-                    $cafData = $this->cafService->getByExecutionId($execution_id);
+                    // através do execution_id do atual dado, consultar na CAF a resposta
+                    $cafData = $this->cafService->getByExecutionId($bdData['cocp_execution_id']);
 
-                    // 2- verifica se o status contido no BD diverge do status contigo na resposta da CAF
+                    // verifica se o status contido no BD diverge do status contigo na resposta da CAF
                     $status = $bdData['cocp_status_consulta'];
                     $statusCaf = $this->translateStatus($cafData['status']);
-
                     if ($status != $statusCaf) {
 
-                        // Transforma o status string em valor int para salvar no BD
+                        // Transforma o status string em valor int para salvar no bd
                         $cafData['status'] = $statusCaf;
 
-                        // envia os dados para serem preparados para a atualização
-                        $this->update($bdData, $cafData);
+                        // verifica o status e em caso de erro (status=3) salva os 
+                        // motivos de reprovacao, senão salva os dados atualizados
+                        if ($statusCaf == 3) {
+                            // se status e cancelado, então envia os dados da resposta
+                            // para serem salvos na tabela de motivos de reprovacao
+                            $this->insertError($cafData);
+                        } else {
+                            // se status for diferente de reprovado, entao envia os
+                            // dados para serem preparados para a atualização
+                            $this->updateData($bdData, $cafData);
+                        }
                     }
                 }
                 // escreve no arquivo de log o término da operação com sucesso
-                $this->logger->info("CRON-CPF-CAF: finished data updates");
+                $this->logger->info("CRON-CPF-CAF: finished operations");
             }
         } catch (\Exception $e) {
             $this->logger->critical("CRON-CPF-CAF: cannot update data with id={$bdData['idCpfVerificado']}. Error: {$e->getMessage()}");
@@ -75,12 +85,12 @@ class ConsultCpfService extends ConsultService
      * construct an object with the new data to save it in database
      * @return void
      */
-    public function update(array $bdData, array $cafData)
+    public function updateData(array $bdData, array $cafData)
     {
         try {
             // constroi um novo objeto do tipo consult que é composto pelos 
             // dados corretos para serem salvos no bd
-            $data = $this->constructUpdatedObject($bdData, $cafData);
+            $data = $this->constructCpfModel($bdData, $cafData);
 
             // envia os dados atualizado para serem salvos no bd
             $this->consultDao->update($data);
@@ -92,12 +102,28 @@ class ConsultCpfService extends ConsultService
         }
     }
 
+    public function insertError(array $cafData)
+    {
+        try {
+            // constroi um novo objeto do tipo error que e composto pelos dados
+            // de motivo de reprovacao e identificacao da requisicao
+            $error = $this->constructErrorModel($cafData);
+
+            // envia os dados para serem inseridos no bd
+            $this->consultDao->insert($error);
+
+            // salva registro em arquivo sobre consulta com resultado final reprovado
+
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
+    }
 
     /**
      * create an object with all updated data to be saved
      * @return CpfModel
      */
-    public function constructUpdatedObject($bdData, $cafData)
+    private function constructCpfModel($bdData, $cafData)
     {
         // dados imutaveis: 
         $id = $bdData['idCpfVerificado'];
@@ -121,16 +147,36 @@ class ConsultCpfService extends ConsultService
         }
 
         // novo objeto com dados atualizados
-        $cpfModel = new CpfModel($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao, $nome, $cpf, $cpfIndex, $dataNascimento, $anoObito, $indicadorObito);
+        return new CpfModel($id, $statusConsulta, $indicadorFraude, $executionId, $dataAtualizacao, $nome, $cpf, $cpfIndex, $dataNascimento, $anoObito, $indicadorObito);
+    }
 
-        return $cpfModel;
+    /**
+     * create an object of type error with a list of errors msg
+     * @return ErrorModel
+     */
+    private function constructErrorModel($cafData)
+    {
+        $executionId = $cafData['_id'];
+        $reportId = $cafData['report'];
+        $deleted = 0;
+        $list = array();
+
+        // lista de motivos para status reprovado
+        foreach ($cafData['validations'] as $validation) {
+            if (strcmp($validation['status'], "INVALID") == 0) {
+                array_push($list, $validation['description']);
+            }
+        }
+
+        // objeto error contendo as informações
+        return new ErrorModel(null, $executionId, $reportId, $list, $deleted);
     }
 
     /**
      * translates the string status to a int according to its value
      * @return int
      */
-    public function translateStatus($status)
+    private function translateStatus($status)
     {
         if (is_string($status)) {
 

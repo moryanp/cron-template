@@ -3,6 +3,7 @@
 namespace App\Repository\Impl;
 
 use App\Model\Entity\CpfModel;
+use App\Model\Entity\ErrorModel;
 use App\Repository\ConsultDao;
 use DI\Container;
 
@@ -91,5 +92,32 @@ final class ConsultCpfDao extends ConsultDao
             'cocp_execution_id' => $data->getExecutionId(),
             'cocp_indicador_obito' => $data->getIndicadorFraude()
         ]);
+    }
+
+    public function insert(ErrorModel $data)
+    {
+        $query = "
+                INSERT INTO
+                    `tbErrosCAF`(`caer_execution_id`, `caer_report_id`, `caer_error_message`, `caer_deleted`)
+                Values
+                    (:caer_execution_id, :caer_report_id, :caer_error_message, :caer_deleted)
+                ";
+        try {
+            $this->conn->beginTransaction();
+
+            foreach ($data->getErrorList() as $error) {
+                $statement = $this->conn->prepare($query);
+                $statement->execute([
+                    'caer_execution_id' => $data->getExecutionId(),
+                    'caer_report_id' => $data->getReportId(),
+                    'caer_error_message' => $error,
+                    'caer_deleted' => $data->getDeleted()
+                ]);
+            }
+            $this->conn->commit();
+        } catch (\Exception $e) {
+            $this->conn->rollBack();
+            throw new \Exception($e->getMessage());
+        }
     }
 }

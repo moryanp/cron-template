@@ -29,8 +29,6 @@ abstract class ConsultService implements ConsultServiceInterface
     protected $register;
 
 
-
-
     public function __construct(Container $container)
     {
         $this->cafService = $container->get('CafService');

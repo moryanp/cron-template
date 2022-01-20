@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Model\Entity\CpfModel;
+use App\Model\Entity\ErrorModel;
 
 interface ConsultDaoInterface
 {
@@ -10,4 +11,5 @@ interface ConsultDaoInterface
     public function findAllPendings();
     public function findById($id);
     public function update(CpfModel $data);
+    public function insert(ErrorModel $data);
 }
